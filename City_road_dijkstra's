@@ -1,0 +1,78 @@
+def find_min_max_distance(N, M, edges):
+    from heapq import heappop, heappush
+    import collections
+    
+    def dijkstra(src, graph, N):
+        dist = [float('inf')] * (N + 1)
+        dist[src] = 0
+        pq = [(0, src)]
+        
+        while pq:
+            d, u = heappop(pq)
+            if d > dist[u]:
+                continue
+            
+            for v, w in graph[u]:
+                if dist[u] + w < dist[v]:
+                    dist[v] = dist[u] + w
+                    heappush(pq, (dist[v], v))
+        
+        return dist
+    
+    # Build graph
+    graph = collections.defaultdict(list)
+    for u, v, w in edges:
+        graph[u].append((v, w))
+        graph[v].append((u, w))
+    
+    # Calculate original maximum distances
+    original_max_dist = 0
+    for i in range(1, N + 1):
+        dist = dijkstra(i, graph, N)
+        original_max_dist = max(original_max_dist, max(dist[1:]))
+    
+    min_max_distance = original_max_dist
+    
+    # Try removing each edge and adding it to another place
+    for u, v, w in edges:
+        # Remove edge (u, v)
+        graph[u].remove((v, w))
+        graph[v].remove((u, w))
+        
+        # Try adding edge (u, v) to another place
+        for i in range(1, N + 1):
+            for j in range(i + 1, N + 1):
+                if i != u and i != v and j != u and j != v and not any(vv == j for vv, _ in graph[i]):
+                    # Add edge (i, j) with weight w
+                    graph[i].append((j, w))
+                    graph[j].append((i, w))
+                    
+                    # Calculate maximum distances
+                    max_dist = 0
+                    for k in range(1, N + 1):
+                        dist = dijkstra(k, graph, N)
+                        max_dist = max(max_dist, max(dist[1:]))
+                    
+                    # Update minimum of the maximum distances
+                    min_max_distance = min(min_max_distance, max_dist)
+                    
+                    # Remove added edge (i, j)
+                    graph[i].remove((j, w))
+                    graph[j].remove((i, w))
+        
+        # Add edge (u, v) back
+        graph[u].append((v, w))
+        graph[v].append((u, w))
+    
+    return min_max_distance
+
+# Input
+N = int(input())
+M = int(input())
+three = int(input())
+edges = []
+for _ in range(M):
+    edges.append(list(map(int, input().split())))
+
+# Output
+print(find_min_max_distance(N, M, edges))
